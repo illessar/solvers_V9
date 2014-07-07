@@ -190,7 +190,6 @@ bool Solver::addClause_(vec<Lit>& ps)
 
 /*RAJOUT STAGE*/
 	ca[cr].setgel(0);
-  ca[cr].setused();
 	attachClause(cr);
 
 /*FIN RAJOUT STAGE*/
@@ -382,17 +381,11 @@ void Solver::freeze_analyse_var_act(){
   int i, j = 0;
 
   activ = 0;
-/*
-  int lbd_tab[50][2];
-  for(i = 0; i < 50; i++){
-    lbd_tab[i][0] = 0;
-    lbd_tab[i][1] = 0;
-  }*/
 
-  int nb = 0, nbrem = 0,nbrem_inutiles = 0 , nb_attach = 0;
+  int nb = 0, nbrem = 0;
   int indice = 0, vr = false;
   for(i = 0 ; i < learnts.size(); i++){
-	  Clause& c = ca[learnts[i]];
+	Clause& c = ca[learnts[i]];
     before = c.getgel();
     c.setgel(to_freeze_var_act_clauses(learnts[i], activity[order_heap[0]]));
 
@@ -406,33 +399,17 @@ void Solver::freeze_analyse_var_act(){
 		detachClause(learnts[i]);
 		c.mark(1);
       }else{
-
-        c.setused();
-    		attachClause(learnts[i]);
-        nb_attach++;
-    		c.mark(0);
-        c.setconfl(0);
-
+		//detachClause(learnts[i],true);
+		attachClause(learnts[i]);
+		//c.mark(0);
+        	c.setconfl(0);
       }
     }
 
   c.setconfl(c.getconfl() + 1);
 
-    if( c.lbd() >= 3 && c.canBeDel() && !locked(c) && c.size()>2 && c.getconfl() > 7 ){
+    if( c.lbd() >= 3 && c.canBeDel() && !locked(c) && c.size()>2 && c.getconfl() > 3 ){
       nbrem++;
-
-      if(c.getused() == 0){
-        nbrem_inutiles++;
-        nb_clauses_inutiles++;
-      }
-/*
-        if(c.lbd() < 49)
-          lbd_tab[c.lbd()][c.getused()]++;
-        else
-          lbd_tab[49][c.getused()]++;
-*/
-      
-
       removeClause(learnts[i]);
       nbRemovedClauses++;
 
@@ -441,13 +418,8 @@ void Solver::freeze_analyse_var_act(){
       learnts[j++] = learnts[i];
     }
   }
-/*
-  for(int k = 0; k < 50 ; k++){
-    printf("lbd[%d][0] = %d , lbd[%d][1] = %d, pthread = %d\n",k, lbd_tab[k][0], k , lbd_tab[k][1], pthread_self());
-  }*/
 
-
-  //printf("nb de clauses gelés = %d sur %d , nb rem = %d, nb_rem_inutiles = %d , activ = %d , nb_attach = %d\n", nb, learnts.size(),nbrem, nbrem_inutiles, activ, nb_attach);
+  printf("nb de clauses gelés = %d sur %d , nb rem = %d, activ = %d\n", nb, learnts.size(),nbrem,activ);
   learnts.shrink(i-j);
 
   checkGarbage();  
@@ -1373,12 +1345,10 @@ lbool Solver::search(int nof_conflicts)
 
 
                 /*RAJOUT STAGE*/
-	if(ca[cr].setgel(to_freeze_var_act_clauses(cr, activity[order_heap[0]])) == 0){
-		attachClause(cr);
-    ca[cr].setused();
-  }
 
-  nb_clauses_total++;
+	ca[cr].setgel(to_freeze_var_act_clauses(cr, activity[order_heap[0]]));
+	if(ca[cr].getgel() == 0)
+		attachClause(cr);
 
 
 //ca[cr].setgel(1);

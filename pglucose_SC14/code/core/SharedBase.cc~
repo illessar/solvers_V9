@@ -148,18 +148,13 @@ void SharedBase::update(pSolver * solver)
 	solver->claBumpActivity(solver->ca[cr]);
 
   /*RAJOUT STAGE*/
-	if(solver->ca[cr].setgel(solver->to_freeze_var_act_clauses(cr, solver->activity[solver->order_heap[0]])) == 0){
+
+/*	solver->ca[cr].setgel(solver->to_freeze_var_act_clauses(cr, solver->activity[solver->order_heap[0]]));
+	if(solver->ca[cr].getgel() == 0)
 		solver->attachClause(cr);
-    solver->ca[cr].setused();
-  }else{
-      solver->removeClause(cr);
-      solver->nbRemovedClauses++;
-  }
+*/
 
-  solver->nb_clauses_total++;
-
-
-//solver->ca[cr].setgel(1);
+solver->ca[cr].setgel(1);
 
   // Indique si oui ou non, on doit geler la clause nouvellement apprise.
   // 

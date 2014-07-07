@@ -8,6 +8,16 @@
 #include <sstream>
 using namespace Glucose;
 
+/*RAJOUT STAGE*/
+
+
+void __clean_(void *arg) {
+  pthread_mutex_unlock((pthread_mutex_t*)arg); 
+}
+
+/*FIN RAJOUT STAGE*/
+
+
 int pSolver::nbworkers=0;
 pSolver ** pSolver::solvers=0;
 int pSolver::folio=false;
@@ -163,9 +173,16 @@ void  pSolver::getPromisingOrder(){
     sharedJob->putResult(tmp);
     mpz_clear(tmp); 
     
+  pthread_cleanup_push(__clean_, &mutex);
+  pthread_mutex_lock(&mutex);
+
     solvers[0]->model.growTo(nVars());
     for (int i = 0; i < nVars(); i++) 
       solvers[0]->model[i] = value(i);
+
+  pthread_mutex_unlock(&mutex);
+  pthread_cleanup_pop(0);
+
     return;
   } 
  
@@ -266,10 +283,18 @@ void pSolver::searchSubProblem() {
       sharedJob->putResult(tmp);
       mpz_clear(tmp);
       std::cout << "Solution Thread="<< id <<std::endl;
+
+  pthread_cleanup_push(__clean_, &mutex);
+  pthread_mutex_lock(&mutex);
+
       solvers[0]->model.growTo(nVars());
       for (int i = 0; i < nVars(); i++) 
 	solvers[0]->model[i] = value(i);
       break;
+
+  pthread_mutex_unlock(&mutex);
+  pthread_cleanup_pop(0);
+
     }
 
     //The problem is UNSAT
@@ -312,13 +337,23 @@ bool pSolver::createJobs(unsigned int h){
 
       /*RAJOUT STAGE*/
 
-                Freeze_params fp = mkFreeze(0, false);
-                fp.freeze = to_freeze(cr);
-                frozen_clauses.push(fp);
+  if(ca[cr].setgel(to_freeze_var_act_clauses(cr, activity[order_heap[0]])) == 0){
+    attachClause(cr);
+    ca[cr].setused();
+  }
 
+  nb_clauses_total++;
+  
+//ca[cr].setgel(1);
+
+/*
+                Freeze_params fp = mkFreeze(0, to_freeze_var_act_clauses(cr,0));
+                fp.freeze = 0;//to_freeze(cr);
+                //frozen_clauses.push(fp);
+*/
       /*FIN RAJOUT STAGE*/
 
-      attachClause(cr);
+      
       claBumpActivity(ca[cr]);
     }
 
@@ -437,13 +472,23 @@ lbool pSolver::search(int nof_conflicts)
 
   /*RAJOUT STAGE*/
 
-                Freeze_params fp = mkFreeze(0, false);
-                fp.freeze = to_freeze(cr);
-                frozen_clauses.push(fp);
+  if(ca[cr].setgel(to_freeze_var_act_clauses(cr, activity[order_heap[0]])) == 0){
+    attachClause(cr);
+    ca[cr].setused();
+  }
 
+  nb_clauses_total++;
+
+//ca[cr].setgel(1);
+
+/*
+                Freeze_params fp = mkFreeze(0, to_freeze_var_act_clauses(cr,0));
+                fp.freeze = 0;//to_freeze(cr);
+                //frozen_clauses.push(fp);
+*/
   /*FIN RAJOUT STAGE*/
 
-	attachClause(cr);
+
 	      
 	claBumpActivity(ca[cr]);
 	uncheckedEnqueue(learnt_clause[0], cr);
@@ -597,18 +642,27 @@ lbool pSolver::search( Lit next )
 	if(nblevels<=2) nbDL2++; // stats
 	if(ca[cr].size()==2) nbBin++; // stats
 	learnts.push(cr);
+  //Attacher une clause à une "Watch List". AAAAH!!!! NOOOOOOON!!!
 
   /*RAJOUT STAGE*/
 
-  Freeze_params fp = mkFreeze(0, false);
-  fp.freeze = to_freeze(cr);
-  frozen_clauses.push(fp);
 
+  if(ca[cr].setgel(to_freeze_var_act_clauses(cr, activity[order_heap[0]])) == 0){
+    attachClause(cr);
+    ca[cr].setused();
+  }
+
+  nb_clauses_total++;
+
+
+//ca[cr].setgel(1);
+
+/*
+  Freeze_params fp = mkFreeze(0, to_freeze_var_act_clauses(cr,0));
+  fp.freeze = 0;//to_freeze(cr);
+  //frozen_clauses.push(fp);
+*/
   /*FIN RAJOUT STAGE*/
-
-  //Attacher une clause à une "Watch List". AAAAH!!!! NOOOOOOON!!!
-	attachClause(cr);
-
 	      
 	claBumpActivity(ca[cr]);
 	uncheckedEnqueue(learnt_clause[0], cr);
@@ -760,6 +814,10 @@ void pSolver::solveMultiThreaded(int h, int t, pSolver *data[]){
       printf("c =========================================================================================================\n");
    }
 
+
+  nb_clauses_total = 0;
+  nb_clauses_inutiles = 0;
+
    folio =true;
    // Le thread initil v creer un ensemble de "workers" ( = nb threads précisés => nb coeurs du systeme)
    // Crée un thread, avec bootstrap comme fonction, tetourne de TID, qu'on stoque précieusement dans la structure sharedJob.
@@ -833,7 +891,7 @@ void pSolver::solveMultiThreaded(int h, int t, pSolver *data[]){
        }
        else{
 	 sharedJob->IFinish();
-	 
+
 	 for (int i=1; i<t; i++)
 	   sharedJob->tids[i-1] =  create_worker(data[i]);
        }

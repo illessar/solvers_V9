@@ -52,11 +52,9 @@ namespace Glucose {
 
 class Solver {
 public:
-  
+   
 
     /*RAJOUT STAGE*/
-
-    pthread_mutex_t mutex;    
 
     double deviation();
     int psm_calc(CRef cr);
@@ -76,9 +74,6 @@ public:
     double maxAct();
     void removeClause_freeze(CRef cr);
     bool exception_freeze(CRef cr);
-
-    double nb_clauses_total;
-    double nb_clauses_inutiles;
     /*FIN RAJOUT STAGE*/
 
 
@@ -226,7 +221,7 @@ protected:
     };
 
     /*RAJOUT STAGE*/
-/*
+
     struct Freeze_params{ 
         bool freeze; 
         char nb_abs_confl;
@@ -234,7 +229,7 @@ protected:
     };
 
     inline  Freeze_params  mkFreeze (char confl, bool gel) { Freeze_params f; f.freeze = gel; f.nb_abs_confl = confl;  }
-*/
+
     /*FIN RAJOUT STAGE*/
 
     // Solver state:
@@ -253,7 +248,7 @@ protected:
 
     /*RAJOUT STAGE*/
 
-    //vec<Freeze_params>           frozen_clauses;    // Liste des clauses apprises, et les valeurs gelé/non-gelé qui leurs sont attribués.
+    vec<Freeze_params>           frozen_clauses;    // Liste des clauses apprises, et les valeurs gelé/non-gelé qui leurs sont attribués.
 
     /*FIN RAJOUT STAGE*/
 
